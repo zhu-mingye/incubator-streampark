@@ -25,7 +25,7 @@ enum APP_API {
   UPDATE = '/flink/app/update',
   COPY = '/flink/app/copy',
   UPLOAD = '/flink/app/upload',
-  START_LOG = '/flink/app/detail',
+  K8S_START_LOG = '/flink/app/k8sStartLog',
   DEPLOY = '/flink/app/deploy',
   MAPPING = '/flink/app/mapping',
   YARN = '/flink/app/yarn',
@@ -46,7 +46,7 @@ enum APP_API {
   ROLLBACK = '/flink/app/rollback',
   REVOKE = '/flink/app/revoke',
   OPTION_LOG = '/flink/app/optionlog',
-  DOWN_LOG = '/flink/app/downlog',
+  DELETE_OPERATION_LOG = '/flink/app/deleteOperationLog',
   CHECK_JAR = '/flink/app/checkjar',
   VERIFY_SCHEMA = '/flink/app/verifySchema',
   CHECK_SAVEPOINT_PATH = '/flink/app/checkSavepointPath',
@@ -88,6 +88,11 @@ export function fetchAppRecord(data): Promise<AppListResponse> {
 export function fetchAppRemove(id: string): Promise<boolean> {
   return defHttp.post({ url: APP_API.DELETE, data: { id } });
 }
+
+export function fetchRemoveBackup(id: string): Promise<boolean> {
+  return defHttp.post({ url: APP_API.DELETE_BAK, data: { id } });
+}
+
 /**
  * get yarn address
  * @returns {Promise<string>}
@@ -155,6 +160,11 @@ export function fetchBackUps(data) {
 export function fetchOptionLog(data) {
   return defHttp.post({ url: APP_API.OPTION_LOG, data });
 }
+
+export function fetchDeleteOperationLog(id: string) {
+  return defHttp.post({ url: APP_API.DELETE_OPERATION_LOG, data: { id } });
+}
+
 /**
  * forced stop
  * @param params id:string
@@ -188,8 +198,8 @@ export function fetchMapping(data): Promise<boolean> {
  * @param params
  * @returns {Promise<AxiosResponse<any>>}
  */
-export function fetchStartLog(data): Promise<AxiosResponse<any>> {
-  return defHttp.post({ url: APP_API.START_LOG, data }, { isReturnNativeResponse: true });
+export function fetchK8sStartLog(data): Promise<AxiosResponse<any>> {
+  return defHttp.post({ url: APP_API.K8S_START_LOG, data }, { isReturnNativeResponse: true });
 }
 /**
  * SavepointPath

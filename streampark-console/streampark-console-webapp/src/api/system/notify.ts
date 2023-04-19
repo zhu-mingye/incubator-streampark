@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { NoticyList } from './model/notifyModel';
+import { NotifyList } from './model/notifyModel';
 import { defHttp } from '/@/utils/http/axios';
 
 interface NotifyParam {
@@ -26,24 +26,24 @@ interface NotifyParam {
   pageSize: number;
 }
 enum NOTIFY_API {
-  NOTICE = '/metrics/notice',
-  DEL = '/metrics/delnotice',
+  NOTICE = '/message/notice',
+  DEL = '/message/delnotice',
 }
 /**
  * Get notification list
  * @param {NotifyParam} data
- * @returns {Promise<NoticyList>}
+ * @returns {Promise<NotifyList>}
  */
-export function fetchNotify(data: NotifyParam): Promise<NoticyList> {
+export function fetchNotify(data: NotifyParam): Promise<NotifyList> {
   return defHttp.post({ url: NOTIFY_API.NOTICE, data });
 }
 
 /**
  * delete notification
  * @param {number} id notification id,
- * @returns {Promise<NoticyList>}
+ * @returns {Promise<NotifyList>}
  */
-export function fetchNotifyDelete(id: string): Promise<NoticyList> {
+export function fetchNotifyDelete(id: string): Promise<NotifyList> {
   return defHttp.post({
     url: NOTIFY_API.DEL,
     data: { id },

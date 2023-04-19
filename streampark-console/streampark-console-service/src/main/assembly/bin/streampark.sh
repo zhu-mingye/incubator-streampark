@@ -208,14 +208,6 @@ else
   fi
 fi
 
-#check java exists.
-$RUNJAVA >/dev/null 2>&1
-
-if [[ $? -ne 1 ]];then
-  echo_r "ERROR: java is not install,please install java first!"
-  exit 1;
-fi
-
 # Add on extra jar files to CLASSPATH
 # shellcheck disable=SC2236
 if [[ ! -z "$CLASSPATH" ]] ; then
@@ -259,7 +251,7 @@ print_logo() {
   printf '      %s  ___/ / /_/ /  /  __/ /_/ / / / / / / /_/ / /_/ / /  / ,<        %s\n'          $PRIMARY $RESET
   printf '      %s /____/\__/_/   \___/\__,_/_/ /_/ /_/ ____/\__,_/_/  /_/|_|       %s\n'          $PRIMARY $RESET
   printf '      %s                                   /_/                            %s\n\n'        $PRIMARY $RESET
-  printf '      %s   Version:  2.0.0 %s\n'                                                         $BLUE   $RESET
+  printf '      %s   Version:  2.1.0-SNAPSHOT %s\n'                                                $BLUE   $RESET
   printf '      %s   WebSite:  https://streampark.apache.org%s\n'                                   $BLUE   $RESET
   printf '      %s   GitHub :  http://github.com/apache/streampark%s\n\n'                          $BLUE   $RESET
   printf '      %s   ──────── Apache StreamPark, Make stream processing easier ô~ô!%s\n\n'         $PRIMARY  $RESET
@@ -276,6 +268,7 @@ running() {
         if [ $? -eq 0 ]; then
           return 1
         else
+          rm -f "$APP_PID" >/dev/null 2>&1
           return 0
         fi
     else
@@ -351,7 +344,7 @@ start() {
   PARAM_CLI="org.apache.streampark.flink.core.conf.ParameterCli"
   # shellcheck disable=SC2034
   # shellcheck disable=SC2006
-  vmOption=`$RUNJAVA -cp "$APP_CLASSPATH" $PARAM_CLI --vmopt`
+  vmOption=`$_RUNJAVA -cp "$APP_CLASSPATH" $PARAM_CLI --vmopt`
 
   JAVA_OPTS="""
   $vmOption
@@ -365,43 +358,38 @@ start() {
   -XX:CMSInitiatingOccupancyFraction=70
   -XX:ThreadStackSize=512
   -Xloggc:${APP_HOME}/logs/gc.log
+  $DEBUG_OPTS
   """
 
-  eval $NOHUP "\"$RUNJAVA\"" $JAVA_OPTS \
+  eval $NOHUP "\"$_RUNJAVA\"" $JAVA_OPTS \
     -classpath "\"$APP_CLASSPATH\"" \
     -Dapp.home="\"${APP_HOME}\"" \
     -Dlogging.config="\"${APP_CONF}\"/logback-spring.xml" \
     -Dspring.config.location="\"${PROPER}\"" \
     -Djava.io.tmpdir="\"$APP_TMPDIR\"" \
-    -Dpid="\"${APP_PID}\"" \
-    org.apache.streampark.console.StreamParkConsoleBootstrap \
-    >> "$APP_OUT" 2>&1 "&"
+    org.apache.streampark.console.StreamParkConsoleBootstrap >> "$APP_OUT" 2>&1 "&"
 
-   if [ $? -eq "0" ]; then
-      local SLEEP_INTERVAL=5
-      local STARTED=0
-      while [ $SLEEP_INTERVAL -ge 0 ]; do
-         # shellcheck disable=SC2236
-         if [ -f "$APP_PID" ]; then
-           if [ -s "$APP_PID" ]; then
-             # shellcheck disable=SC2006
-             echo_g "StreamPark start successful. pid: `cat "$APP_PID"`"
-             STARTED=1
-             break
-           fi
-         fi
-         if [ $SLEEP_INTERVAL -gt 0 ]; then
-           sleep 1
-         fi
-         # shellcheck disable=SC2006
-         SLEEP_INTERVAL=`expr $SLEEP_INTERVAL - 1 `
-      done
-      if [ $STARTED -eq 0 ] ;then
-        echo_g "StreamPark start successful."
-      fi
-   else
-      echo_r "StreamPark start failed."
-   fi
+    local PID=$!
+
+    # Add to pid file if successful start
+    if [[ ${PID} =~ ${IS_NUMBER} ]] && kill -0 $PID > /dev/null 2>&1 ; then
+        echo $PID > "$APP_PID"
+        echo_g "StreamPark start successful. pid: `cat "$APP_PID"`"
+    else
+        echo_r "StreamPark start failed."
+        exit 1
+    fi
+}
+
+debug() {
+  if [ ! -n "$DEBUG_PORT" ]; then
+    echo_r "If start with debug mode,Please fill in the debug port like: bash streampark.sh debug 10002 "
+  else
+    DEBUG_OPTS="""
+    -Xdebug  -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$DEBUG_PORT
+    """
+    start
+  fi
 }
 
 # shellcheck disable=SC2120
@@ -554,6 +542,10 @@ restart() {
 main() {
   print_logo
   case "$1" in
+    "debug")
+        DEBUG_PORT=$2
+        debug
+        ;;
     "start")
         start
         ;;
@@ -573,6 +565,7 @@ main() {
         echo_w "  start \$conf               Start StreamPark with application config."
         echo_w "  stop n -force             Stop StreamPark, wait up to n seconds and then use kill -KILL if still running"
         echo_w "  status                    StreamPark status"
+        echo_w "  debug                     StreamPark start with debug mode,start debug mode, like: bash streampark.sh debug 10002"
         echo_w "  restart \$conf             restart StreamPark with application config."
         exit 0
         ;;

@@ -53,7 +53,7 @@
         <result column="cp_failure_action" jdbcType="INTEGER" property="cpFailureAction"/>
         <result column="restart_size" jdbcType="INTEGER" property="restartSize"/>
         <result column="restart_count" jdbcType="INTEGER" property="restartCount"/>
-        <result column="launch" jdbcType="INTEGER" property="launch"/>
+        <result column="release" jdbcType="INTEGER" property="release"/>
         <result column="build" jdbcType="BOOLEAN" property="build"/>
         <result column="resolve_order" jdbcType="INTEGER" property="resolveOrder"/>
         <result column="total_tm" jdbcType="INTEGER" property="totalTM"/>
@@ -83,32 +83,44 @@
     </update>
 
     <select id="existsByTeamId" resultType="java.lang.Boolean" parameterType="java.lang.Long">
-        select count(1)
+        select
+            CASE
+                WHEN  count(1) > 0 THEN true ELSE false
+            END
         from t_flink_app
         where team_id = #{teamId}
         limit 1
     </select>
 
     <select id="existsByJobName" resultType="java.lang.Boolean" parameterType="java.lang.String">
-        select count(1)
+        select
+            CASE
+                WHEN  count(1) > 0 THEN true ELSE false
+            END
         from t_flink_app
         where job_name = #{jobName}
         limit 1
     </select>
 
     <select id="existsJobByClusterId" resultType="java.lang.Boolean" parameterType="java.lang.Long">
-        select count(1)
-        from t_flink_app
-        where flink_cluster_id = #{clusterId}
+        SELECT
+            CASE
+                WHEN  count(1) > 0 THEN true ELSE false
+            END
+        FROM t_flink_app
+        WHERE flink_cluster_id = #{clusterId}
         limit 1
     </select>
 
     <select id="existsRunningJobByClusterId" resultType="java.lang.Boolean" parameterType="java.lang.Long">
-        select count(1)
+        select
+            CASE
+                WHEN  count(1) > 0 THEN true ELSE false
+            END
         from t_flink_app
-        where flink_cluster_id = #{clusterId}
-        and state = 5
-        limit 1
+            where flink_cluster_id = #{clusterId}
+             and state = 5
+             limit 1
     </select>
 
     <select id="getByProjectId" resultType="org.apache.streampark.console.core.entity.Application" parameterType="java.lang.Long">
@@ -191,12 +203,6 @@
             <if test="application.tracking != null">
                 tracking=#{application.tracking},
             </if>
-            <if test="application.state != null">
-                state=#{application.state},
-            </if>
-            <if test="application.launch != null">
-                launch=#{application.launch},
-            </if>
             <if test="application.optionState != null">
                 option_state=#{application.optionState},
             </if>
@@ -216,7 +222,7 @@
                     total_task=null,
                     available_slot=null,
                     jm_memory=null,
-                    tm_memory=null
+                    tm_memory=null,
                 </when>
                 <otherwise>
                     <if test="application.totalTM != null">
@@ -235,10 +241,11 @@
                         jm_memory=#{application.jmMemory},
                     </if>
                     <if test="application.tmMemory != null">
-                        tm_memory=#{application.tmMemory}
+                        tm_memory=#{application.tmMemory},
                     </if>
                 </otherwise>
             </choose>
+            state=#{application.state}
         </set>
         where id=#{application.id}
     </update>
